@@ -1,0 +1,5 @@
+python-dotenv
+matplotlib
+pandas
+metaapi-cloud-sdk
+nest_asyncio
