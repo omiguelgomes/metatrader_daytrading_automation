@@ -59,7 +59,7 @@ def update_magicLine(cci, upT, downT, magicLine):
     return newMagicLine
 
 #only uses graph color, doesn't use script alert
-def update_operation(operation, cci):
+async def update_operation(operation, cci, connection, connectionRPC, positions):
     #check if the chart is trending, before updating
     if cci >= 0:
         newOperation = "Buy"
@@ -69,18 +69,20 @@ def update_operation(operation, cci):
     #Signal changed, make transaction
     if operation != newOperation and operation is not None:
         if newOperation == "Buy":
-            print("Will perform a purchase")
-            transactioner.buy()
+            print(str(datetime.datetime.now()) + " - Will perform a purchase")
+            asyncio.run(transactioner.buy(connection, connectionRPC, positions))
         elif newOperation == "Sell":
-            print("Will sell everything")
-            transactioner.sell()
+            print(str(datetime.datetime.now()) + " - Will sell everything")
+            asyncio.run(transactioner.sell(connection, connectionRPC, positions))
+            positions = []
 
     elif operation is None and newOperation == "Buy":
-        transactioner.buy()
+        print(str(datetime.datetime.now()) + " - Will perform a purchase")
+        asyncio.run(transactioner.buy(connection, connectionRPC, positions))
 
     return newOperation
 
-async def update(candle, magicLine, operation, account):
+async def update(candle, magicLine, operation, account, connection, connectionRPC, positions):
 
     atr = update_atr(candle)
 
@@ -97,6 +99,6 @@ async def update(candle, magicLine, operation, account):
 
     newMagicLine = update_magicLine(cci, upT, downT, magicLine)
 
-    newOperation = update_operation(operation, cci)
+    newOperation = asyncio.run(update_operation(operation, cci, connection, connectionRPC, positions))
         
     return newMagicLine, newOperation

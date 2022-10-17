@@ -1,101 +1,73 @@
 import os
+import asyncio
+import nest_asyncio
 
-def buy():
-    #prepare symbol
-    symbol = str(os.getenv("SYMBOL"))
-    symbol_info = mt5.symbol_info(symbol)
-    if symbol_info is None:
-        print(symbol, "not found, can not call order_check()")
-        mt5.shutdown()
-        quit()
+async def canBuy(connectionRPC, orders):
+    balance = int(asyncio.run(connectionRPC.get_account_information())['balance'])
+    total_stake = 0.0
+    for order in orders:
+        position = asyncio.run(connectionRPC.get_position(position_id=order))
+        volume = int(position['volume'])
+        current_price = int(position['currentPrice'])
+        total_stake += volume*current_price
+
+    return (total_stake/balance) < 0.03
+
+async def buy(connection, connectionRPC, orders):
+    if canBuy(connectionRPC, orders):
+        order = asyncio.run(connection.create_market_buy_order(
+            symbol=str(os.getenv("SYMBOL")), 
+            volume=0.07, 
+            stop_loss=0.965))
     
-    # if the symbol is unavailable in MarketWatch, add it
-    if not symbol_info.visible:
-        print(symbol, "is not visible, trying to switch on")
-        if not mt5.symbol_select(symbol,True):
-            print("symbol_select({}}) failed, exit",symbol)
-            mt5.shutdown()
-            quit()
-    
-    # prepare the buy request structure
-    lot = 0.1
-    price = mt5.symbol_info_tick(symbol).ask
-    deviation = 20
-    request = {
-        "action": mt5.TRADE_ACTION_PENDING,
-        "symbol": symbol,
-        "volume": lot,
-        "type": mt5.ORDER_TYPE_BUY_LIMIT,
-        "price": price,
-        "sl": price*(1-0.003),
-        "deviation": deviation,
-        "magic": 234000,
-        "comment": "python script open",
-        "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_RETURN,
-    }
-    
-    # send a trading request
-    result = mt5.order_send(request)
-    # check the execution result
-    print("1. order_send(): by {} {} lots at {} with deviation={} points".format(symbol,lot,price,deviation));
-    if result.retcode != mt5.TRADE_RETCODE_DONE:
-        print("2. order_send failed, retcode={}".format(result.retcode))
-        # request the result as a dictionary and display it element by element
-        result_dict=result._asdict()
-        for field in result_dict.keys():
-            print("   {}={}".format(field,result_dict[field]))
-            # if this is a trading request structure, display it element by element as well
-            if field=="request":
-                traderequest_dict=result_dict[field]._asdict()
-                for tradereq_filed in traderequest_dict:
-                    print("       traderequest: {}={}".format(tradereq_filed,traderequest_dict[tradereq_filed]))
-        print("shutdown() and quit")
-        mt5.shutdown()
-        quit()
-    else:
-        print("2. order_send done, ", result)
-
-    return result
-    
-
-def sell(transaction):
-    symbol = str(os.getenv("SYMBOL"))
-    position_id=transaction.order
-    price=mt5.symbol_info_tick(symbol).bid
-    deviation=20
-
-    request={
-        "action": mt5.TRADE_ACTION_PENDING,
-        "symbol": symbol,
-        "volume": lot,
-        "type": mt5.ORDER_TYPE_SELL_LIMIT,
-        "position": position_id,
-        "price": price,
-        "deviation": deviation,
-        "magic": 234000,
-        "comment": "python script close",
-        "type_time": mt5.ORDER_TIME_GTC,
-        "type_filling": mt5.ORDER_FILLING_RETURN,
-    }
-    # send a trading request
-    result=mt5.order_send(request)
-    # check the execution result
-    print("3. close position #{}: sell {} {} lots at {} with deviation={} points".format(position_id,symbol,lot,price,deviation));
-    if result.retcode != mt5.TRADE_RETCODE_DONE:
-        print("4. order_send failed, retcode={}".format(result.retcode))
-        print("   result",result)
-    else:
-        print("4. position #{} closed, {}".format(position_id,result))
-        # request the result as a dictionary and display it element by element
-        result_dict=result._asdict()
-        for field in result_dict.keys():
-            print("   {}={}".format(field,result_dict[field]))
-            # if this is a trading request structure, display it element by element as well
-            if field=="request":
-                traderequest_dict=result_dict[field]._asdict()
-                for tradereq_filed in traderequest_dict:
-                    print("       traderequest: {}={}".format(tradereq_filed,traderequest_dict[tradereq_filed]))
+    if order['message'] == 'Request completed':
+        orders.append(order['orderId'])
 
 
-    return result
+async def sell(connection, connectionRPC, orders):
+    total_volume = 0.0
+
+    for order in orders:
+        position = asyncio.run(connectionRPC.get_position(position_id=order))
+        volume = int(position['volume'])
+        
+        total_volume += volume
+
+    asyncio.run(connection.create_market_sell_order(
+        symbol=str(os.getenv("SYMBOL")), 
+        volume=total_volume))
+
+
+#BUYING OPTIONS
+# print(await connection.create_stop_limit_buy_order(symbol='GBPUSD', volume=0.07, open_price=1.5,
+#     stop_limit_price=1.4, stop_loss=0.9, take_profit=2.0, options={'comment': 'comment',
+#     'clientId': 'TE_GBPUSD_7hyINWqAl'}))
+
+# print(await connection.create_limit_buy_order(symbol='GBPUSD', volume=0.07, open_price=1.0, stop_loss=0.9,
+#     take_profit=2.0, options={'comment': 'comment', 'clientId': 'TE_GBPUSD_7hyINWqAl'}))
+
+# print(await connection.create_stop_buy_order(symbol='GBPUSD', volume=0.07, open_price=1.5, stop_loss=2.0,
+#     take_profit=0.9, options={'comment': 'comment', 'clientId': 'TE_GBPUSD_7hyINWqAl'}))
+
+
+#SELLING OPTIONS
+
+# print(await connection.create_limit_sell_order(symbol='GBPUSD', volume=0.07, open_price=1.5, stop_loss=2.0,
+#     take_profit=0.9, options={'comment': 'comment', 'clientId': 'TE_GBPUSD_7hyINWqAl'}))
+
+# print(await connection.create_stop_sell_order(symbol='GBPUSD', volume=0.07, open_price=1.0, stop_loss=2.0,
+#     take_profit=0.9, options={'comment': 'comment', 'clientId': 'TE_GBPUSD_7hyINWqAl'}))
+
+# print(await connection.create_stop_limit_sell_order(symbol='GBPUSD', volume=0.07, open_price=1.0,
+#     stop_limit_price=1.1, stop_loss=2.0, take_profit=0.9, options={'comment': 'comment',
+#     'clientId': 'TE_GBPUSD_7hyINWqAl'}))
+
+
+#OTHER OPTIONS, AFTER BUYING
+# print(await connection.modify_position(position_id='46870472', stop_loss=2.0, take_profit=0.9))
+# print(await connection.close_position_partially(position_id='46870472', volume=0.9))
+# print(await connection.close_position(position_id='46870472'))
+# print(await connection.close_by(position_id='46870472', opposite_position_id='46870482'))
+# print(await connection.close_positions_by_symbol(symbol='EURUSD'))
+# print(await connection.modify_order(order_id='46870472', open_price=1.0, stop_loss=2.0, take_profit=0.9))
+# print(await connection.cancel_order(order_id='46870472'))
