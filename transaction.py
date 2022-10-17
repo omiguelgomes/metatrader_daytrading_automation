@@ -14,7 +14,7 @@ async def canBuy(connectionRPC, orders):
     return (total_stake/balance) < 0.03
 
 async def buy(connection, connectionRPC, orders):
-    if canBuy(connectionRPC, orders):
+    if asyncio.run(canBuy(connectionRPC, orders)):
         order = asyncio.run(connection.create_market_buy_order(
             symbol=str(os.getenv("SYMBOL")), 
             volume=0.07, 
