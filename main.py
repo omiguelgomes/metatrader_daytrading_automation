@@ -25,6 +25,8 @@ async def get_candle(account):
 
 def is_open_hour(closing_hours):
 
+    if len(closing_hours) == 0: return True
+
     start, end = closing_hours[0]
     now = datetime.datetime.now()
 
@@ -43,7 +45,9 @@ def is_open_hour(closing_hours):
 async def main_loop(account, connection, connectionRPC):
     magicLine = None
     operation = None
-
+    candleCrossedLine = False
+    newCandle = asyncio.run(get_candle(account))
+    prevCandle = asyncio.run(get_candle(account))
     closing_hours = parser.parse_closing_hours()
 
     orders = []
@@ -51,9 +55,16 @@ async def main_loop(account, connection, connectionRPC):
     #check new times, and stop the bot for that time
     while True:
         if is_open_hour(closing_hours):
+            newCandle = asyncio.run(get_candle(account))
 
-            candle = asyncio.run(get_candle(account))
-            magicLine, operation = asyncio.run(updater.update(candle, magicLine, operation, account, connection, connectionRPC, orders))
+            #Candle ended, make transaction
+            if newCandle.iloc[0]['brokerTime'] != prevCandle.iloc[0]['brokerTime']:
+                prevCandle = newCandle
+                candleEnded = True
+            else:
+                candleEnded = False
+
+            magicLine, operation, candleCrossedLine = asyncio.run(updater.update(newCandle, magicLine, operation, account, connection, connectionRPC, orders, candleEnded, candleCrossedLine))
             print(str(datetime.datetime.now()) + " - Current operation is: " + str(operation))
             
         time.sleep(int(os.getenv("REFRESH")))
@@ -61,8 +72,11 @@ async def main_loop(account, connection, connectionRPC):
 async def main():
     #Login
     token = str(os.getenv("TOKEN"))
+    account_id = str(os.getenv("ACCOUNT_ID"))
+
+    token = str(os.getenv("TOKEN"))
     api = MetaApi(token=token)
-    account =  await api.metatrader_account_api.get_account(account_id=str(os.getenv("ACCOUNT_ID")))
+    account =  await api.metatrader_account_api.get_account(account_id=account_id)
 
     print("Login done")
 

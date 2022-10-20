@@ -59,7 +59,7 @@ def update_magicLine(cci, upT, downT, magicLine):
     return newMagicLine
 
 #only uses graph color, doesn't use script alert
-async def update_operation(operation, cci, connection, connectionRPC, positions):
+async def update_operation(operation, cci, connection, connectionRPC, positions, candleCrossedLine):
     #check if the chart is trending, before updating
     if cci >= 0:
         newOperation = "Buy"
@@ -75,14 +75,25 @@ async def update_operation(operation, cci, connection, connectionRPC, positions)
             print(str(datetime.datetime.now()) + " - Will sell everything")
             asyncio.run(transactioner.sell(connection, connectionRPC, positions))
             positions = []
-
+    
+    #First buy of the run
     elif operation is None and newOperation == "Buy":
+        print(str(datetime.datetime.now()) + " - Will perform a purchase")
+        asyncio.run(transactioner.buy(connection, connectionRPC, positions))
+
+    #Already bought, but 2 consecutive buy signals appeard
+    elif newOperation == "Buy" and operation == "Buy":
+        print(str(datetime.datetime.now()) + " - Will perform a purchase")
+        asyncio.run(transactioner.buy(connection, connectionRPC, positions))
+
+    #if prevCandle touched magic line, make purchase
+    elif candleCrossedLine:
         print(str(datetime.datetime.now()) + " - Will perform a purchase")
         asyncio.run(transactioner.buy(connection, connectionRPC, positions))
 
     return newOperation
 
-async def update(candle, magicLine, operation, account, connection, connectionRPC, positions):
+async def update(candle, magicLine, operation, account, connection, connectionRPC, positions, candleEnded, candleCrossedLine):
 
     atr = update_atr(candle)
 
@@ -99,6 +110,11 @@ async def update(candle, magicLine, operation, account, connection, connectionRP
 
     newMagicLine = update_magicLine(cci, upT, downT, magicLine)
 
-    newOperation = asyncio.run(update_operation(operation, cci, connection, connectionRPC, positions))
-        
-    return newMagicLine, newOperation
+    if candle.iloc[0]['low'] <= newMagicLine <= candle.iloc[0]['high']:
+        candleCrossedLine = True
+
+    if(candleEnded):
+        operation = asyncio.run(update_operation(operation, cci, connection, connectionRPC, positions, candleCrossedLine))
+
+
+    return newMagicLine, operation, candleCrossedLine
