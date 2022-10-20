@@ -1,6 +1,7 @@
 import os
 import asyncio
 import nest_asyncio
+import datetime
 
 async def canBuy(connectionRPC, orders):
     balance = int(asyncio.run(connectionRPC.get_account_information())['balance'])
@@ -13,9 +14,10 @@ async def canBuy(connectionRPC, orders):
 
     return (total_stake/balance) < 0.03
 
-async def buy(connection, connectionRPC, orders):
-    if asyncio.run(canBuy(connectionRPC, orders)):
-        order = asyncio.run(connection.create_market_buy_order(
+async def buy(connection, orders):
+    if asyncio.run(canBuy(connection.connectionRPC, orders)):
+        print(str(datetime.datetime.now()) + " - Will perform a purchase")
+        order = asyncio.run(connection.connection.create_market_buy_order(
             symbol=str(os.getenv("SYMBOL")), 
             volume=0.07, 
             stop_loss=0.965))
@@ -24,11 +26,12 @@ async def buy(connection, connectionRPC, orders):
         orders.append(order['orderId'])
 
 
-async def sell(connection, connectionRPC, orders):
+async def sell(connection, orders):
     total_volume = 0.0
+    print(str(datetime.datetime.now()) + " - Will sell everything")
 
     for order in orders:
-        position = asyncio.run(connectionRPC.get_position(position_id=order))
+        position = asyncio.run(connection.connectionRPC.get_position(position_id=order))
         volume = int(position['volume'])
         
         total_volume += volume

@@ -39,27 +39,28 @@ def update_vars(candle, atr):
 
     return upT, downT
 
-def update_magicLine(cci, upT, downT, magicLine):
+def update_magicLine(cci, upT, downT, graph):
     
     #initialize magicLine
-    if magicLine is None:
-        magicLine = upT if cci >= 0 else downT
+    if graph.magicLine is None:
+        graph.magicLine = upT if cci >= 0 else downT
     
     if cci >= 0:
-        if upT < magicLine:
-            newMagicLine = magicLine
+        if upT < graph.magicLine:
+            newMagicLine = graph.magicLine
         else:
             newMagicLine = upT
     else:
-        if downT > magicLine:
-            newMagicLine = magicLine
+        if downT > graph.magicLine:
+            newMagicLine = graph.magicLine
         else:
             newMagicLine = downT
     
-    return newMagicLine
+    graph.magicLine = newMagicLine
+    return
 
 #only uses graph color, doesn't use script alert
-async def update_operation(operation, cci, connection, connectionRPC, positions, candleCrossedLine):
+async def update_operation(graph, cci, connection):
     #check if the chart is trending, before updating
     if cci >= 0:
         newOperation = "Buy"
@@ -67,40 +68,34 @@ async def update_operation(operation, cci, connection, connectionRPC, positions,
         newOperation = "Sell"
 
     #Signal changed, make transaction
-    if operation != newOperation and operation is not None:
+    if graph.operation != newOperation and graph.operation is not None:
         if newOperation == "Buy":
-            print(str(datetime.datetime.now()) + " - Will perform a purchase")
-            asyncio.run(transactioner.buy(connection, connectionRPC, positions))
+            asyncio.run(transactioner.buy(connection.connection, graph.positions))
         elif newOperation == "Sell":
-            print(str(datetime.datetime.now()) + " - Will sell everything")
-            asyncio.run(transactioner.sell(connection, connectionRPC, positions))
-            positions = []
+            asyncio.run(transactioner.sell(connection.connection, graph.positions))
+            graph.positions = []
     
     #First buy of the run
-    elif operation is None and newOperation == "Buy":
-        print(str(datetime.datetime.now()) + " - Will perform a purchase")
-        asyncio.run(transactioner.buy(connection, connectionRPC, positions))
+    elif graph.operation is None and newOperation == "Buy":
+        asyncio.run(transactioner.buy(connection.connection, graph.positions))
 
     #Already bought, but 2 consecutive buy signals appeard
-    elif newOperation == "Buy" and operation == "Buy":
-        print(str(datetime.datetime.now()) + " - Will perform a purchase")
-        asyncio.run(transactioner.buy(connection, connectionRPC, positions))
+    elif newOperation == "Buy" and graph.operation == "Buy":
+        asyncio.run(transactioner.buy(connection.connection, graph.positions))
 
     #if prevCandle touched magic line, make purchase
-    elif candleCrossedLine:
-        print(str(datetime.datetime.now()) + " - Will perform a purchase")
-        asyncio.run(transactioner.buy(connection, connectionRPC, positions))
+    elif graph.candleCrossedLine:
+        asyncio.run(transactioner.buy(connection.connection, graph.positions))
 
-    return newOperation
+    graph.operation = newOperation
 
-async def update(candle, magicLine, operation, account, connection, connectionRPC, positions, candleEnded, candleCrossedLine):
+async def update(graph, connection):
 
-    atr = update_atr(candle)
-
-    upT, downT = update_vars(candle, atr)
+    atr = update_atr(graph.newCandle)
+    upT, downT = update_vars(graph.newCandle, atr)
 
     #historic data, from last <period> days, to get cci
-    data =  asyncio.run(account.get_historical_candles(symbol=os.getenv("SYMBOL"), timeframe='5m',
+    data =  asyncio.run(connection.account.get_historical_candles(symbol=os.getenv("SYMBOL"), timeframe='5m',
                                                start_time=datetime.datetime.now(), limit=int(os.getenv("PERIOD"))))
 
     data_frame = pd.DataFrame(data)
@@ -108,13 +103,12 @@ async def update(candle, magicLine, operation, account, connection, connectionRP
     
     cci = update_cci(int(os.getenv("PERIOD")), data_frame)
 
-    newMagicLine = update_magicLine(cci, upT, downT, magicLine)
+    update_magicLine(cci, upT, downT, graph)
 
-    if candle.iloc[0]['low'] <= newMagicLine <= candle.iloc[0]['high']:
-        candleCrossedLine = True
+    if graph.newCandle.iloc[0]['low'] <= graph.magicLine <= graph.newCandle.iloc[0]['high']:
+        graph.candleCrossedLine = True
 
-    if(candleEnded):
-        operation = asyncio.run(update_operation(operation, cci, connection, connectionRPC, positions, candleCrossedLine))
+    if(graph.candleEnded):
+        asyncio.run(update_operation(graph, cci, connection))
 
-
-    return newMagicLine, operation, candleCrossedLine
+    return
