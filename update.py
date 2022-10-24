@@ -17,6 +17,7 @@ def update_cci(period, data):
     data['MAD'] = data['TP'].rolling(period).apply(lambda x: pd.Series(x).mad())
     
     data['CCI'] = (data['TP'] - data['SMA'])/(0.015*data['MAD'])
+    print(data)
     return data['CCI'][period-1]
 
 def update_atr(candle_frame):
@@ -62,6 +63,7 @@ def update_magicLine(cci, upT, downT, graph):
 #only uses graph color, doesn't use script alert
 async def update_operation(graph, cci, connection):
     #check if the chart is trending, before updating
+    print(cci)
     if cci >= 0:
         newOperation = "Buy"
     else:
@@ -95,7 +97,7 @@ async def update(graph, connection, time):
     upT, downT = update_vars(graph.newCandle, atr)
 
     #historic data, from last <period> days, to get cci
-    data =  asyncio.run(connection.account.get_historical_candles(symbol=os.getenv("SYMBOL"), timeframe='5m',
+    data =  asyncio.run(connection.account.get_historical_candles(symbol=os.getenv("SYMBOL"), timeframe=str(os.getenv("TIMEFRAME")),
                                                start_time=time, limit=int(os.getenv("PERIOD"))))
 
     data_frame = pd.DataFrame(data)
@@ -110,5 +112,6 @@ async def update(graph, connection, time):
 
     if(graph.candleEnded):
         asyncio.run(update_operation(graph, cci, connection))
+        graph.candleEnded = False
 
     return
