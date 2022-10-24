@@ -19,7 +19,7 @@ async def buy(connection, orders):
 
         print(str(datetime.now()) + " - Will perform a purchase")
 
-        if os.getenv("DEBUG") != "False":
+        if str(os.getenv("DEBUG")) != "False":
 
             order = asyncio.run(connection.connection.create_market_buy_order(
                 symbol=str(os.getenv("SYMBOL")), 
@@ -34,7 +34,7 @@ async def sell(connection, orders):
     total_volume = 0.0
     print(str(datetime.now()) + " - Will sell everything")
 
-    if os.getenv("DEBUG") != "False":
+    if str(os.getenv("DEBUG")) != "False":
 
         for order in orders:
             position = asyncio.run(connection.connectionRPC.get_position(position_id=order))
