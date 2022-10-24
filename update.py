@@ -84,7 +84,7 @@ async def update_operation(graph, cci, connection):
         asyncio.run(transactioner.buy(connection, graph.positions))
 
     #if prevCandle touched magic line, make purchase
-    elif graph.candleCrossedLine:
+    elif graph.candleCrossedLine and newOperation == "Buy":
         asyncio.run(transactioner.buy(connection, graph.positions))
 
     graph.operation = newOperation
