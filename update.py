@@ -4,7 +4,7 @@ import pandas as pd
 import transaction as transactioner
 import asyncio
 import nest_asyncio
-import datetime
+from datetime import datetime
 
 def update_cci(period, data):
     #For some reason, I believe pine uses close instead of typical price
@@ -70,33 +70,33 @@ async def update_operation(graph, cci, connection):
     #Signal changed, make transaction
     if graph.operation != newOperation and graph.operation is not None:
         if newOperation == "Buy":
-            asyncio.run(transactioner.buy(connection.connection, graph.positions))
+            asyncio.run(transactioner.buy(connection, graph.positions))
         elif newOperation == "Sell":
-            asyncio.run(transactioner.sell(connection.connection, graph.positions))
+            asyncio.run(transactioner.sell(connection, graph.positions))
             graph.positions = []
     
     #First buy of the run
     elif graph.operation is None and newOperation == "Buy":
-        asyncio.run(transactioner.buy(connection.connection, graph.positions))
+        asyncio.run(transactioner.buy(connection, graph.positions))
 
     #Already bought, but 2 consecutive buy signals appeard
     elif newOperation == "Buy" and graph.operation == "Buy":
-        asyncio.run(transactioner.buy(connection.connection, graph.positions))
+        asyncio.run(transactioner.buy(connection, graph.positions))
 
     #if prevCandle touched magic line, make purchase
     elif graph.candleCrossedLine:
-        asyncio.run(transactioner.buy(connection.connection, graph.positions))
+        asyncio.run(transactioner.buy(connection, graph.positions))
 
     graph.operation = newOperation
 
-async def update(graph, connection):
+async def update(graph, connection, time):
 
     atr = update_atr(graph.newCandle)
     upT, downT = update_vars(graph.newCandle, atr)
 
     #historic data, from last <period> days, to get cci
     data =  asyncio.run(connection.account.get_historical_candles(symbol=os.getenv("SYMBOL"), timeframe='5m',
-                                               start_time=datetime.datetime.now(), limit=int(os.getenv("PERIOD"))))
+                                               start_time=time, limit=int(os.getenv("PERIOD"))))
 
     data_frame = pd.DataFrame(data)
     data_frame['time'] = pd.to_datetime(data_frame['time'], unit='s')

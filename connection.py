@@ -19,6 +19,7 @@ class Connection:
         account = asyncio.run(api.metatrader_account_api.get_account(account_id=account_id))
         asyncio.run(account.deploy())
         asyncio.run(account.wait_connected())
+        print("connected")
         return account
 
     async def get_connection(self):

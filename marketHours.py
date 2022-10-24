@@ -28,7 +28,7 @@ class MarketHours:
         if len(self.closing_hours) == 0: return True
 
         start, end = self.closing_hours[0]
-        now = datetime.datetime.now()
+        now = datetime.now()
 
         #dont run in down hours
         if now >= start and now <= end:

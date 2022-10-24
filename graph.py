@@ -1,7 +1,7 @@
 from metaapi_cloud_sdk import MetaApi
 import asyncio
 import nest_asyncio
-import datetime
+from datetime import datetime
 import pandas as pd
 from dotenv import load_dotenv
 import os
@@ -15,8 +15,8 @@ class Graph:
         self.candleCrossedLine = False
         self.candleEnded = False
         self.connection = connection
-        self.newCandle = asyncio.run(self.get_candle(self.connection.account))
-        self.prevCandle = asyncio.run(self.get_candle(self.connection.account))
+        self.newCandle = asyncio.run(self.get_candle(self.connection.account, datetime.now()))
+        self.prevCandle = asyncio.run(self.get_candle(self.connection.account, datetime.now()))
         return self
 
     def set_candle_ended(self, candleEnded):
@@ -30,14 +30,14 @@ class Graph:
         self.prevCandle = self.newCandle
         self.candleEnded = True
 
-    async def get_new_candle(self):
-        self.newCandle = asyncio.run(self.get_candle(self.connection))
+    async def get_new_candle(self, time):
+        self.newCandle = asyncio.run(self.get_candle(self.connection.account, time))
 
-    async def get_candle(self, account):
+    async def get_candle(self, account, time):
         candle =  asyncio.run(account.get_historical_candles(
             symbol=os.getenv("SYMBOL"),
             timeframe='5m',
-            start_time=datetime.datetime.now(),
+            start_time=time,
             limit=1))
 
         candle_frame = pd.DataFrame(candle)
