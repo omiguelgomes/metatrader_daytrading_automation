@@ -71,24 +71,11 @@ async def update_operation(graph, cci, connection):
 
     if graph.candleCrossedLine:
         #Signal changed, make transaction
-        if graph.operation != newOperation and graph.operation is not None:
-            if newOperation == "Buy":
-                asyncio.run(transactioner.buy(connection, graph.positions))
-            elif newOperation == "Sell":
-                asyncio.run(transactioner.sell(connection, graph.positions))
-                graph.positions = []
-
-        #First buy of the run
-        elif graph.operation is None and newOperation == "Buy":
+        if newOperation == "Buy":
             asyncio.run(transactioner.buy(connection, graph.positions))
-
-        #Already bought, but 2 consecutive buy signals appeard
-        elif newOperation == "Buy" and graph.operation == "Buy":
-            asyncio.run(transactioner.buy(connection, graph.positions))
-
-        #if prevCandle touched magic line, make purchase
-        elif graph.candleCrossedLine and newOperation == "Buy":
-            asyncio.run(transactioner.buy(connection, graph.positions))
+        elif newOperation == "Sell":
+            asyncio.run(transactioner.sell(connection, graph.positions))
+            graph.positions = []
 
     graph.operation = newOperation
 
