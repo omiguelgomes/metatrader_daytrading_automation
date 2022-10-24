@@ -63,31 +63,32 @@ def update_magicLine(cci, upT, downT, graph):
 #only uses graph color, doesn't use script alert
 async def update_operation(graph, cci, connection):
     #check if the chart is trending, before updating
-    print(cci)
+    
     if cci >= 0:
         newOperation = "Buy"
     else:
         newOperation = "Sell"
 
-    #Signal changed, make transaction
-    if graph.operation != newOperation and graph.operation is not None:
-        if newOperation == "Buy":
+    if graph.candleCrossedLine:
+        #Signal changed, make transaction
+        if graph.operation != newOperation and graph.operation is not None:
+            if newOperation == "Buy":
+                asyncio.run(transactioner.buy(connection, graph.positions))
+            elif newOperation == "Sell":
+                asyncio.run(transactioner.sell(connection, graph.positions))
+                graph.positions = []
+
+        #First buy of the run
+        elif graph.operation is None and newOperation == "Buy":
             asyncio.run(transactioner.buy(connection, graph.positions))
-        elif newOperation == "Sell":
-            asyncio.run(transactioner.sell(connection, graph.positions))
-            graph.positions = []
-    
-    #First buy of the run
-    elif graph.operation is None and newOperation == "Buy":
-        asyncio.run(transactioner.buy(connection, graph.positions))
 
-    #Already bought, but 2 consecutive buy signals appeard
-    elif newOperation == "Buy" and graph.operation == "Buy":
-        asyncio.run(transactioner.buy(connection, graph.positions))
+        #Already bought, but 2 consecutive buy signals appeard
+        elif newOperation == "Buy" and graph.operation == "Buy":
+            asyncio.run(transactioner.buy(connection, graph.positions))
 
-    #if prevCandle touched magic line, make purchase
-    elif graph.candleCrossedLine and newOperation == "Buy":
-        asyncio.run(transactioner.buy(connection, graph.positions))
+        #if prevCandle touched magic line, make purchase
+        elif graph.candleCrossedLine and newOperation == "Buy":
+            asyncio.run(transactioner.buy(connection, graph.positions))
 
     graph.operation = newOperation
 
@@ -105,13 +106,14 @@ async def update(graph, connection, time):
     
     cci = update_cci(int(os.getenv("PERIOD")), data_frame)
 
-    update_magicLine(cci, upT, downT, graph)
-
-    if graph.newCandle.iloc[0]['low'] <= graph.magicLine <= graph.newCandle.iloc[0]['high']:
-        graph.candleCrossedLine = True
-
     if(graph.candleEnded):
+        update_magicLine(cci, upT, downT, graph)
+
+        if graph.newCandle.iloc[0]['low'] <= graph.magicLine <= graph.newCandle.iloc[0]['high']:
+            graph.candleCrossedLine = True
+
         asyncio.run(update_operation(graph, cci, connection))
         graph.candleEnded = False
+        graph.candleCrossedLine = False
 
     return
