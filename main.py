@@ -14,9 +14,6 @@ load_dotenv()
 nest_asyncio.apply()
 
 async def main_loop(connection):
-
-    graph = asyncio.run(Graph.create(connection))
-    marketHours = MarketHours.create()
     
     #For debugging purposes, to allow starting on the date we want
     init_time = datetime.now()
@@ -24,6 +21,9 @@ async def main_loop(connection):
         candle_time = datetime.strptime(os.getenv("START_TIME"), "%Y-%m-%d %H:%M:%S")
     else:
         candle_time = datetime.now()
+
+    graph = asyncio.run(Graph.create(connection, init_time))
+    marketHours = MarketHours.create()
 
     #check new times, and stop the bot for that time
     while True:

@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 
 class Graph:
-    async def create(connection):
+    async def create(connection, time):
         self = Graph()
         self.positions = self.get_positions()
         self.magicLine = None
@@ -15,8 +15,8 @@ class Graph:
         self.candleCrossedLine = False
         self.candleEnded = False
         self.connection = connection
-        self.newCandle = asyncio.run(self.get_candle(self.connection.account, datetime.now()))
-        self.prevCandle = asyncio.run(self.get_candle(self.connection.account, datetime.now()))
+        self.newCandle = asyncio.run(self.get_candle(self.connection.account, time))
+        self.prevCandle = asyncio.run(self.get_candle(self.connection.account, time))
         return self
 
     def set_candle_ended(self, candleEnded):
@@ -36,7 +36,7 @@ class Graph:
     async def get_candle(self, account, time):
         candle =  asyncio.run(account.get_historical_candles(
             symbol=os.getenv("SYMBOL"),
-            timeframe='5m',
+            timeframe=str(os.getenv("TIMEFRAME")),
             start_time=time,
             limit=1))
 
