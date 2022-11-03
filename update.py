@@ -70,7 +70,7 @@ async def update_operation(graph, cci, connection):
 
     if newOperation == "Buy" and graph.operation != "Buy" and graph.candleCrossedLine:
         asyncio.run(transactioner.buy(connection))
-    elif newOperation == "Sell" and graph.opeation != None:
+    elif newOperation == "Sell" and graph.operation != None:
         asyncio.run(transactioner.sell(connection))
         
     if not graph.candleCrossedLine:
