@@ -3,19 +3,18 @@ import asyncio
 import nest_asyncio
 from datetime import datetime
 
-async def canBuy(connection, orders):
+async def canBuy(connection):
     balance = int(asyncio.run(connection.get_account_information())['balance'])
     total_stake = 0.0
-    for order in orders:
-        position = asyncio.run(connection.get_position(position_id=order))
+    for position in asyncio.run(connection.get_positions()):
         volume = int(position['volume'])
         current_price = int(position['currentPrice'])
         total_stake += volume*current_price
 
     return (total_stake/balance) < 0.03
 
-async def buy(connection, orders):
-    if asyncio.run(canBuy(connection.connectionRPC, orders)):
+async def buy(connection):
+    if asyncio.run(canBuy(connection.connectionRPC)):
 
         print(str(datetime.now()) + " - Will perform a purchase")
 
@@ -25,27 +24,23 @@ async def buy(connection, orders):
                 symbol=str(os.getenv("SYMBOL")), 
                 volume=0.07, 
                 stop_loss=0.965))
-    
-            if order['message'] == 'Request completed':
-                orders.append(order['orderId'])
+
+    else:
+        print("Cannot buy, there is too much at stake in the account")
 
 
-async def sell(connection, orders):
+async def sell(connection):
     total_volume = 0.0
-    print(str(datetime.now()) + " - Will sell everything")
+    print(str(datetime.now()) + " - Will sell: ")
 
-    if str(os.getenv("DEBUG")) == "False":
+    #sum of all volumes of all positions active of the symbol chosen
+    total_volume = sum([position['volume'] for position in await connection.connectionRPC.get_positions() if position['symbol'] == str(os.getenv("SYMBOL"))])
+    print(str(total_volume))    
 
-        for order in orders:
-            position = asyncio.run(connection.connectionRPC.get_position(position_id=order))
-            volume = int(position['volume'])
-            
-            total_volume += volume
-            
-        if total_volume != 0.0:
-            asyncio.run(connection.connection.create_market_sell_order(
-                symbol=str(os.getenv("SYMBOL")), 
-                volume=total_volume))
+    if total_volume != 0.0 and (os.getenv("DEBUG") == "False"):
+        asyncio.run(connection.connection.create_market_sell_order(
+            symbol=str(os.getenv("SYMBOL")), 
+            volume=total_volume))
 
 
 #BUYING OPTIONS

@@ -22,7 +22,7 @@ async def main_loop(connection):
     else:
         candle_time = datetime.now()
 
-    graph = asyncio.run(Graph.create(connection, init_time))
+    graph = asyncio.run(Graph.create(connection, candle_time))
     marketHours = MarketHours.create()
 
     #check new times, and stop the bot for that time
@@ -30,16 +30,16 @@ async def main_loop(connection):
         if marketHours.is_open_hour():
             time = datetime.now()-(init_time-candle_time)
             #print(time)
+
             asyncio.run(graph.get_new_candle(time))
 
             #Candle ended, make transaction
-            if graph.newCandle.iloc[0]['brokerTime'] != graph.prevCandle.iloc[0]['brokerTime']:
+            if graph.newCandle.iloc[0]['brokerTime'] != graph.currCandle.iloc[0]['brokerTime']:
                 graph.candle_ended()
+                
+                asyncio.run(updater.update(graph, connection, time))
             else:
                 graph.set_candle_ended(False)
-
-            asyncio.run(updater.update(graph, connection, time))
-            print(str(datetime.now()) + " - Current operation is: " + str(graph.operation))
             
         t.sleep(int(os.getenv("REFRESH")))
 
@@ -52,6 +52,7 @@ async def main():
     await connection.connection.subscribe_to_market_data('EURUSD')
 
     print("Account connected")
+
     asyncio.run(main_loop(connection))
 
 

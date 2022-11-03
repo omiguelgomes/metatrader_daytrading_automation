@@ -16,7 +16,7 @@ class Graph:
         self.candleEnded = False
         self.connection = connection
         self.newCandle = asyncio.run(self.get_candle(self.connection.account, time))
-        self.prevCandle = asyncio.run(self.get_candle(self.connection.account, time))
+        self.currCandle = asyncio.run(self.get_candle(self.connection.account, time))
         return self
 
     def set_candle_ended(self, candleEnded):
@@ -27,7 +27,16 @@ class Graph:
         return []
 
     def candle_ended(self):
-        self.prevCandle = self.newCandle
+        
+        if self.magicLine != None:
+            low_3 = round(self.currCandle.iloc[0]['low'], 3)
+            high_3 = round(self.currCandle.iloc[0]['high'], 3)
+            magic_3 = round(self.magicLine, 3)
+
+            #Precision is only 3 decimal places
+            if low_3 <= magic_3 <= high_3:
+                self.candleCrossedLine = True
+
         self.candleEnded = True
 
     async def get_new_candle(self, time):
