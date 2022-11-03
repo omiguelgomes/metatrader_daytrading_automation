@@ -52,10 +52,6 @@ async def main():
 
     print("Account connected")
 
-    print(await connection.connectionRPC.get_positions())
-
-    #total_volume = sum([position['volume'] for position in await connection.connectionRPC.get_positions() if position['symbol'] == str(os.getenv("SYMBOL"))])
-
     asyncio.run(main_loop(connection))
 
 
