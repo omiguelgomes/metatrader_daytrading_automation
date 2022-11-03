@@ -32,7 +32,7 @@ async def buy(connection):
 
 async def sell(connection):
     total_volume = 0.0
-    print(str(datetime.now()) + " - Will sell: ")
+    print("Will sell: ")
 
     #sum of all volumes of all positions active of the symbol chosen
     total_volume = sum([position['volume'] for position in await connection.connectionRPC.get_positions() if position['symbol'] == str(os.getenv("SYMBOL"))])
