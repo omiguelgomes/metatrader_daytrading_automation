@@ -29,7 +29,6 @@ async def main_loop(connection):
     while True:
         if marketHours.is_open_hour():
             time = datetime.now()-(init_time-candle_time)
-            #print(time)
 
             asyncio.run(graph.get_new_candle(time))
 

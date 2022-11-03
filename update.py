@@ -65,16 +65,19 @@ async def update_operation(graph, cci, connection):
     
     if cci >= 0:
         newOperation = "Buy"
+        print("Line indicates buy")
     else:
         newOperation = "Sell"
+        print("Line indicates sell")
 
-    if newOperation == "Buy" and graph.operation != "Buy" and graph.candleCrossedLine:
+    if newOperation == "Buy" and graph.candleCrossedLine:
         asyncio.run(transactioner.buy(connection))
+    
+        if not graph.candleCrossedLine:
+            print("Candle did not cross line")
+
     elif newOperation == "Sell" and graph.operation != None:
         asyncio.run(transactioner.sell(connection))
-        
-    if not graph.candleCrossedLine:
-        print("Graph did not cross line")
 
     graph.operation = newOperation
 
@@ -83,7 +86,6 @@ async def update(graph, connection, time):
     #UPDATE ATTRS AND VARS
     atr = update_atr(graph.currCandle)
     upT, downT = update_vars(graph.currCandle, atr)
-
 
     #UPDATE CCI
     data =  asyncio.run(connection.account.get_historical_candles(symbol=os.getenv("SYMBOL"), timeframe=str(os.getenv("TIMEFRAME")),
@@ -102,10 +104,9 @@ async def update(graph, connection, time):
 
 
     #PRINTS
-    print(graph.magicLine)
+    print("Magic line:" + str(graph.magicLine))
+    print("Latest candle: ")
     print(graph.currCandle.iloc[0])
-    print("cci: " + str(cci))
-    print(str(time) + " - Current operation is: " + str(graph.operation))
 
 
     #RESET CANDLE

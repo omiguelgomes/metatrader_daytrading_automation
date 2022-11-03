@@ -11,7 +11,7 @@ class Graph:
         self = Graph()
         self.positions = self.get_positions()
         self.magicLine = None
-        self.operation = None
+        self.operation = "Sell"
         self.candleCrossedLine = False
         self.candleEnded = False
         self.connection = connection

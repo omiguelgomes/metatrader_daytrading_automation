@@ -20,10 +20,11 @@ async def buy(connection):
 
         if str(os.getenv("DEBUG")) == "False":
 
-            order = asyncio.run(connection.connection.create_market_buy_order(
+            asyncio.run(connection.connection.create_market_buy_order(
                 symbol=str(os.getenv("SYMBOL")), 
                 volume=0.07, 
-                stop_loss=0.965))
+                stop_loss=0.965,
+                stopLossUnits="RELATIVE_PRICE"))
 
     else:
         print("Cannot buy, there is too much at stake in the account")
