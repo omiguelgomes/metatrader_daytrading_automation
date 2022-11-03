@@ -3,18 +3,30 @@ import asyncio
 import nest_asyncio
 from datetime import datetime
 
-async def canBuy(connection):
+async def canBuy(connection, volume, price):
     balance = int(asyncio.run(connection.get_account_information())['balance'])
+    equity = int(asyncio.run(connection.get_account_information())['equity'])
+
+    if balance < volume*price:
+        print("Balance is too low")
+        return False
+
     total_stake = 0.0
     for position in asyncio.run(connection.get_positions()):
         volume = int(position['volume'])
         current_price = int(position['currentPrice'])
         total_stake += volume*current_price
 
-    return (total_stake/balance) < 0.03
+
+    if (total_stake/equity) < 0.03:
+        print("Cannot buy, there is too much at stake in the account")
+        return False
+
+    return True
 
 async def buy(connection, price):
-    if asyncio.run(canBuy(connection.connectionRPC)):
+    volume = 0.07
+    if asyncio.run(canBuy(connection.connectionRPC, volume, price)):
 
         print(str(datetime.now()) + " - Will perform a purchase")
 
@@ -22,11 +34,8 @@ async def buy(connection, price):
 
             asyncio.run(connection.connection.create_market_buy_order(
                 symbol=str(os.getenv("SYMBOL")), 
-                volume=0.07, 
+                volume=volume,
                 stop_loss=0.965*price))
-
-    else:
-        print("Cannot buy, there is too much at stake in the account")
 
 
 async def sell(connection):
