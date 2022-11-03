@@ -13,7 +13,7 @@ async def canBuy(connection):
 
     return (total_stake/balance) < 0.03
 
-async def buy(connection):
+async def buy(connection, price):
     if asyncio.run(canBuy(connection.connectionRPC)):
 
         print(str(datetime.now()) + " - Will perform a purchase")
@@ -23,8 +23,7 @@ async def buy(connection):
             asyncio.run(connection.connection.create_market_buy_order(
                 symbol=str(os.getenv("SYMBOL")), 
                 volume=0.07, 
-                stop_loss=0.965,
-                stopLossUnits="RELATIVE_PRICE"))
+                stop_loss=0.965*price))
 
     else:
         print("Cannot buy, there is too much at stake in the account")

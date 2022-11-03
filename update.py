@@ -71,7 +71,7 @@ async def update_operation(graph, cci, connection):
         print("Line indicates sell")
 
     if newOperation == "Buy" and graph.candleCrossedLine:
-        asyncio.run(transactioner.buy(connection))
+        asyncio.run(transactioner.buy(connection, graph.currCandle.iloc[0]['close']))
     
         if not graph.candleCrossedLine:
             print("Candle did not cross line")
