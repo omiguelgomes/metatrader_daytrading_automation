@@ -49,7 +49,7 @@ async def sell(connection):
     if total_volume != 0.0 and (os.getenv("DEBUG") == "False"):
         asyncio.run(connection.connection.create_market_sell_order(
             symbol=str(os.getenv("SYMBOL")), 
-            volume=total_volume))
+            volume=round(total_volume, 2)))
 
 
 #BUYING OPTIONS
