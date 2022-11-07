@@ -25,7 +25,7 @@ async def canBuy(connection, volume, price):
     return True
 
 async def buy(connection, price):
-    volume = 0.07
+    volume = 0.01
     if asyncio.run(canBuy(connection.connectionRPC, volume, price)):
 
         print(str(datetime.now()) + " - Will perform a purchase")
